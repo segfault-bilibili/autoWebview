@@ -1,10 +1,10 @@
 <template>
   <mu-flex direction="column">
     <mu-list>
-      <mu-list-item button :ripple="true" @click="openServe">
+      <mu-list-item button :ripple="true" @click="enableAutoService">
         <mu-list-item-title>无障碍服务</mu-list-item-title>
         <mu-list-item-action>
-          <mu-icon value="done" v-if="serve"></mu-icon>
+          <mu-icon value="done" v-if="isAutoServiceEnabled"></mu-icon>
           <mu-icon value="navigate_next" v-else></mu-icon>
         </mu-list-item-action>
       </mu-list-item>
@@ -141,11 +141,6 @@
         <div slot="header">功能介绍</div>
         {{ options[config.selectOptions].introduce }}
       </mu-expansion-panel>
-      <!-- 使用说明 -->
-      <mu-expansion-panel :expand="true" :zDepth="0">
-        <div slot="header">使用说明</div>
-        {{ options[config.selectOptions].helper }}
-      </mu-expansion-panel>
     </div>
   </mu-flex>
 </template>
@@ -156,27 +151,36 @@ export default {
   data() {
     return {
       options: scriptOptions,
-      serve: false,
+      isAutoServiceEnabled: false,
       config: { selectOptions: 0 },
     };
   },
   methods: {
-    callAJ(functionName, arrParam) {
+    callAJ(functionName) {
+      //使用JSON传递参数，无法传递函数
+      let paramString = "";
+      if (arguments.length > 1) {
+        let arrParam = [];
+        for (let i=1; i<arguments.length; i++) {
+          arrParam.push(arguments[i]);
+          paramString = JSON.stringify(arrParam);
+        }
+      }
       let res = undefined;
       try {
-        res = prompt(functionName, arrParam);
+        res = prompt(functionName, paramString);
       } catch (error) {
         console.log(error);
       }
       return res;
     },
-    openServe() {
-      if (!this.serve) {
-        let res = this.callAJ("is_serve");
+    enableAutoService() {
+      if (!this.isAutoServiceEnabled) {
+        let res = this.callAJ("isAutoServiceEnabled");
         if (res) {
-          this.serve = true;
+          this.isAutoServiceEnabled = true;
         } else {
-          this.callAJ("open_serve");
+          this.callAJ("toggleAutoService", true);
         }
       }
     },
@@ -193,14 +197,14 @@ export default {
       }
       // 改变设置
       let data = { config: this.config };
-      this.callAJ("change_config", JSON.stringify(data));
+      this.callAJ("change_config", data);
     },
   },
   created() {
-    //initServe
-    let res = this.callAJ("is_serve");
+    //无障碍服务监控
+    let res = this.callAJ("isAutoServiceEnabled");
     if (res) {
-      this.serve = true;
+      this.isAutoServiceEnabled = true;
     }
     //config
     let one = {};
@@ -241,7 +245,6 @@ export default {
       options.push(option);
     }
     let data = { scripts: options, config: this.config };
-    this.callAJ("set_script", JSON.stringify(data));
   },
 };
 </script>

@@ -18,6 +18,9 @@
           </div>
         </div>
         <mu-divider></mu-divider>
+        <mu-list-item @click="switchToLegacySettingsUI" button>
+          <mu-list-item-title>切换到旧版设置界面</mu-list-item-title>
+        </mu-list-item>
         <mu-list-item button @click="backHome">
           <mu-list-item-title>首页</mu-list-item-title>
         </mu-list-item>
@@ -29,9 +32,6 @@
         </mu-list-item>
         <mu-list-item button @click="goPage('http://rika.ren/~kuro/workspace/playground/')">
           <mu-list-item-title>模拟抽卡</mu-list-item-title>
-        </mu-list-item>
-        <mu-list-item button @click="goPage('https://baidu.com')">
-          <mu-list-item-title>切换源</mu-list-item-title>
         </mu-list-item>
         <mu-list-item button @click="goPage('https://baidu.com')">
           <mu-list-item-title>检查更新</mu-list-item-title>
@@ -58,6 +58,9 @@ export default {
     };
   },
   methods: {
+    switchToLegacySettingsUI() {
+      this.callAJ("switchSettingsUI", "legacy");
+    },
     backHome() {
       this.open = false;
       this.$emit("changeIframe", false);
@@ -67,10 +70,19 @@ export default {
       this.$emit("changeIframe", true);
       this.$emit("changeIframeNet", net);
     },
-    callAJ(functionName, arrParam) {
+    callAJ(functionName) {
+      //使用JSON传递参数，无法传递函数
+      let paramString = "";
+      if (arguments.length > 1) {
+        let arrParam = [];
+        for (let i=1; i<arguments.length; i++) {
+          arrParam.push(arguments[i]);
+          paramString = JSON.stringify(arrParam);
+        }
+      }
       let res = undefined;
       try {
-        res = prompt(functionName, arrParam);
+        res = prompt(functionName, paramString);
       } catch (error) {
         console.log(error);
       }
