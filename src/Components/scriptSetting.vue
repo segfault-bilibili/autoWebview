@@ -1,7 +1,7 @@
 <template>
   <mu-flex direction="column">
     <mu-list>
-      <mu-list-item button :ripple="true" @click="enableAutoService">
+      <mu-list-item button :ripple="true" @click="toggleAutoService">
         <mu-list-item-title>无障碍服务</mu-list-item-title>
         <mu-list-item-action>
           <mu-icon value="done" v-if="isAutoServiceEnabled"></mu-icon>
@@ -168,21 +168,18 @@ export default {
       }
       let res = undefined;
       try {
-        res = prompt(functionName, paramString);
+        let resString = prompt(functionName, paramString);
+        res = JSON.parse(resString);
       } catch (error) {
         console.log(error);
+        res = undefined;
       }
       return res;
     },
-    enableAutoService() {
-      if (!this.isAutoServiceEnabled) {
-        let res = this.callAJ("isAutoServiceEnabled");
-        if (res) {
-          this.isAutoServiceEnabled = true;
-        } else {
-          this.callAJ("toggleAutoService", true);
-        }
-      }
+    toggleAutoService() {
+      let alreadyEnabled = this.isAutoServiceEnabled ? true : false;
+      let result = this.callAJ("toggleAutoService", !alreadyEnabled);
+      this.isAutoServiceEnabled = result;
     },
     change_config(one_config) {
       // 对于有存储的特殊处理
@@ -201,6 +198,24 @@ export default {
     },
   },
   created() {
+    //可在F12或AutoJS端更新UI状态
+    let vueInstance = this;
+    window.updateSettingsUI = function (key, value) {
+      switch (typeof value) {
+        case "string":
+        case "number":
+        case "boolean":
+          break;
+        default:
+          console.error("updateSettingsUI: unacceptable value type");
+          return;
+      }
+      if (typeof vueInstance[key] !== typeof value) {
+        console.error("updateSettingsUI: value type mismatch");
+        return;
+      }
+      vueInstance[key] = value;
+    }
     //无障碍服务监控
     let res = this.callAJ("isAutoServiceEnabled");
     if (res) {

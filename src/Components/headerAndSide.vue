@@ -82,9 +82,11 @@ export default {
       }
       let res = undefined;
       try {
-        res = prompt(functionName, paramString);
+        let resString = prompt(functionName, paramString);
+        res = JSON.parse(resString);
       } catch (error) {
         console.log(error);
+        res = undefined;
       }
       return res;
     },
