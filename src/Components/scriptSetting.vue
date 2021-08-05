@@ -18,7 +18,7 @@
         full-width
       >
         <mu-option
-          v-for="(option, index) in options"
+          v-for="(option, index) in scripts"
           :key="index"
           :label="option.name"
           :value="index"
@@ -33,7 +33,7 @@
           <!-- ap使用 -->
           <mu-flex
             direction="column"
-            v-if="'ap50' in options[config.selectOptions].config"
+            v-if="'ap50' in scripts[config.selectOptions].config"
             style="width: 100%"
           >
             <div>ap回复设置：</div>
@@ -100,7 +100,7 @@
             class="settingContent2"
             justify-content="between"
             align-items="center"
-            v-if="'justnpc' in options[config.selectOptions].config"
+            v-if="'justnpc' in scripts[config.selectOptions].config"
           >
             <div>只使用NPC（不选则优先互关好友）</div>
             <mu-switch
@@ -139,18 +139,19 @@
       <!-- 功能介绍 -->
       <mu-expansion-panel :expand="true" :zDepth="0">
         <div slot="header">功能介绍</div>
-        {{ options[config.selectOptions].introduce }}
+        <!-- 参考： Vue插值文本换行问题 https://www.cnblogs.com/leegent/p/9274424.html -->
+        <div slot="default" class="text-wrapper">{{ scripts[config.selectOptions].introduction }}</div>
       </mu-expansion-panel>
     </div>
   </mu-flex>
 </template>
 
 <script>
-import scriptOptions from "../Scripts/index";
+import scriptsPlaceHolder from "../Scripts/placeholder.js";
 export default {
   data() {
     return {
-      options: scriptOptions,
+      scripts: scriptsPlaceHolder,
       isAutoServiceEnabled: false,
       config: { selectOptions: 0 },
     };
@@ -181,11 +182,20 @@ export default {
       let result = this.callAJ("toggleAutoService", !alreadyEnabled);
       this.isAutoServiceEnabled = result;
     },
+    getScripts() {
+      let result = this.callAJ("getScripts");
+      if (result == null || result.length == 0) result = scriptsPlaceHolder;
+      result.forEach(element => {
+        if (element.config == null) element.config = scriptsPlaceHolder[0].config;
+      });
+      return result;
+    },
     change_config(one_config) {
+      /* TODO 为保持兼容，不应使用webview里的localstorage，还是应该继续从AutoJS的storages里读取参数
       // 对于有存储的特殊处理
       if (
-        this.options[this.config.selectOptions].config[one_config] &&
-        this.options[this.config.selectOptions].config[one_config].save
+        this.scripts[this.config.selectOptions].config[one_config] &&
+        this.scripts[this.config.selectOptions].config[one_config].save
       ) {
         let save_data = localStorage.getItem(one_config);
         if (save_data) {
@@ -195,6 +205,7 @@ export default {
       // 改变设置
       let data = { config: this.config };
       this.callAJ("change_config", data);
+      */
     },
   },
   created() {
@@ -217,20 +228,20 @@ export default {
       vueInstance[key] = value;
     }
     //无障碍服务监控
-    let res = this.callAJ("isAutoServiceEnabled");
-    if (res) {
+    if (this.callAJ("isAutoServiceEnabled")) {
       this.isAutoServiceEnabled = true;
     }
+    /* TODO 为保持兼容，不应使用webview里的localstorage，还是应该继续从AutoJS的storages里读取参数 */
     //config
     let one = {};
-    for (let i = 0; i < this.options.length; i++) {
-      let configs = Object.keys(this.options[i].config);
+    for (let i = 0; i < this.scripts.length; i++) {
+      let configs = Object.keys(this.scripts[i].config);
       for (let i2 = 0; i2 < configs.length; i2++) {
         if (configs[i2] in one) {
         } else {
-          one[configs[i2]] = this.options[i].config[configs[i2]].default;
+          one[configs[i2]] = this.scripts[i].config[configs[i2]].default;
           // 存储值
-          if (this.options[i].config[configs[i2]].save) {
+          if (this.scripts[i].config[configs[i2]].save) {
             let save_data = localStorage.getItem(configs[i2]);
             if (save_data) {
               if (save_data == "true") {
@@ -242,7 +253,7 @@ export default {
             } else {
               localStorage.setItem(
                 configs[i2],
-                this.options[i].config[configs[i2]].default
+                this.scripts[i].config[configs[i2]].default
               );
             }
           }
@@ -251,19 +262,12 @@ export default {
     }
     one["selectOptions"] = this.config.selectOptions;
     this.config = one;
-    //script
-    let options = [];
-    for (let i = 0; i < this.options.length; i++) {
-      let option = {};
-      option["name"] = this.options[i].name;
-      option["script"] = this.options[i].script;
-      options.push(option);
-    }
-    let data = { scripts: options, config: this.config };
+    //给默认执行脚本下拉选单实际填入数据
+    this.scripts = this.getScripts();
   },
 };
 </script>
-<style >
+<style>
 .settingAp .mu-input {
   min-height: 0px;
   margin-bottom: 0px;
@@ -295,5 +299,8 @@ export default {
   width: 50px;
   margin-left: 10px;
   outline: none;
+}
+.text-wrapper {
+  white-space: pre-wrap;
 }
 </style>
