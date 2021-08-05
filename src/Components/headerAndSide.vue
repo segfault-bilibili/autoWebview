@@ -36,7 +36,10 @@
         <mu-list-item button @click="goPage('https://baidu.com')">
           <mu-list-item-title>检查更新</mu-list-item-title>
         </mu-list-item>
-        <mu-list-item button @click="openconsole">
+        <mu-list-item button @click="reportBug">
+          <mu-list-item-title>报告问题</mu-list-item-title>
+        </mu-list-item>
+        <mu-list-item button @click="openLogConsole">
           <mu-list-item-title>日志</mu-list-item-title>
         </mu-list-item>
         <!-- <mu-list-item button @click="goPage('https://baidu.com')">
@@ -90,8 +93,11 @@ export default {
       }
       return res;
     },
-    openconsole(){
-      this.callAJ("open_console")
+    reportBug() {
+      this.callAJ("reportBug");
+    },
+    openLogConsole(){
+      this.callAJ("openLogConsole");
     }
   },
 };
