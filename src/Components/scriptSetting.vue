@@ -2,7 +2,8 @@
   <mu-flex direction="column">
     <mu-list>
       <mu-list-item button :ripple="true" @click="toggleAutoService">
-        <mu-list-item-title>无障碍服务</mu-list-item-title>
+        <mu-list-item-title v-if="isAutoServiceEnabled">无障碍服务已开启</mu-list-item-title>
+        <mu-list-item-title v-else><b>请先开启无障碍服务</b></mu-list-item-title>
         <mu-list-item-action>
           <mu-icon value="done" v-if="isAutoServiceEnabled"></mu-icon>
           <mu-icon value="navigate_next" v-else></mu-icon>
