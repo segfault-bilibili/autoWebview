@@ -4,7 +4,7 @@
       <mu-button icon slot="left" @click="open = true">
         <mu-icon value="menu"></mu-icon>
       </mu-button>
-      autoTools
+      全自动小彩羽v{{versionString}}
     </mu-appbar>
 
     <mu-drawer :open.sync="open" :docked="false">
@@ -14,26 +14,17 @@
             <img src="../img/1.png" />
           </mu-avatar>
           <div style="margin-top: 5px; font-weight: 600">
-            周回auto机器人全自动小伊v8
+            全自动小彩羽v{{versionString}}
           </div>
         </div>
         <mu-divider></mu-divider>
-        <mu-list-item @click="switchToLegacySettingsUI" button>
-          <mu-list-item-title>切换到旧版设置界面</mu-list-item-title>
-        </mu-list-item>
-        <mu-list-item button @click="backHome">
-          <mu-list-item-title>首页</mu-list-item-title>
-        </mu-list-item>
-        <mu-list-item
-          button
-          @click="goPage('https://magireco.moe/wiki/%E9%A6%96%E9%A1%B5')"
-        >
+        <mu-list-item button @click="openURL('https://magireco.moe/wiki/%E9%A6%96%E9%A1%B5')">
           <mu-list-item-title>魔纪wiki</mu-list-item-title>
         </mu-list-item>
-        <mu-list-item button @click="goPage('http://rika.ren/~kuro/workspace/playground/')">
+        <mu-list-item button @click="openURL('http://rika.ren/~kuro/workspace/playground/')">
           <mu-list-item-title>模拟抽卡</mu-list-item-title>
         </mu-list-item>
-        <mu-list-item button @click="goPage('https://baidu.com')">
+        <mu-list-item button @click="upgrade">
           <mu-list-item-title>检查更新</mu-list-item-title>
         </mu-list-item>
         <mu-list-item button @click="reportBug">
@@ -42,9 +33,6 @@
         <mu-list-item button @click="openLogConsole">
           <mu-list-item-title>日志</mu-list-item-title>
         </mu-list-item>
-        <!-- <mu-list-item button @click="goPage('https://baidu.com')">
-          <mu-list-item-title>关于</mu-list-item-title>
-        </mu-list-item> -->
         <mu-list-item @click="open = false" button>
           <mu-list-item-title>返回</mu-list-item-title>
         </mu-list-item>
@@ -58,20 +46,14 @@ export default {
   data() {
     return {
       open: false,
+      versionString: "",
     };
   },
   methods: {
-    switchToLegacySettingsUI() {
-      this.callAJ("switchSettingsUI", "legacy");
-    },
-    backHome() {
-      this.open = false;
-      this.$emit("changeIframe", false);
-    },
-    goPage(net) {
-      this.open = false;
-      this.$emit("changeIframe", true);
-      this.$emit("changeIframeNet", net);
+    openURL(url) {
+      if (typeof url == "string") {
+        this.callAJ("openURL", url);
+      }
     },
     callAJ(functionName) {
       //使用JSON传递参数，无法传递函数
@@ -98,7 +80,13 @@ export default {
     },
     openLogConsole(){
       this.callAJ("openLogConsole");
-    }
+    },
+    upgrade() {
+      this.callAJ("upgrade");
+    },
+  },
+  created() {
+    this.versionString = this.callAJ("getVersionString");
   },
 };
 </script>

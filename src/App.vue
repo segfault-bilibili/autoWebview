@@ -5,15 +5,7 @@
         @changeIframe="changeIframe"
         @changeIframeNet="changeIframeNet"
       ></headerSide>
-      <iframe
-        v-if="iframeOpen"
-        :src="iframeNet"
-        width="100%"
-        height="100%"
-        frameborder="0"
-        scrolling="auto"
-      ></iframe>
-      <div style="height: 100%; width: 100%" v-else>
+      <div style="height: 100%; width: 100%">
         <scriptSetting></scriptSetting>
       </div>
     </mu-flex>
@@ -30,17 +22,9 @@ export default {
   },
   data() {
     return {
-      iframeOpen: false,
-      iframeNet: "",
     };
   },
   methods: {
-    changeIframe(isIframe) {
-      this.iframeOpen = isIframe;
-    },
-    changeIframeNet(net) {
-      this.iframeNet = net;
-    },
     callAJ(functionName, arrParam) {
       let res = undefined;
       try {
@@ -52,7 +36,6 @@ export default {
     },
   },
   created() {
-    // this.callAJ("onFloat", scripts);
   },
 };
 </script>
