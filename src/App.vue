@@ -1,10 +1,7 @@
 <template>
   <div id="app">
     <mu-flex direction="column" style="height: 100%">
-      <headerSide
-        @changeIframe="changeIframe"
-        @changeIframeNet="changeIframeNet"
-      ></headerSide>
+      <headerSide></headerSide>
       <div style="height: 100%; width: 100%">
         <scriptSetting></scriptSetting>
       </div>

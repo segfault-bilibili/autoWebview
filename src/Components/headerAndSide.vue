@@ -1,6 +1,6 @@
 <template>
   <div style="width: 100%">
-    <mu-appbar style="width: 100%" color="primary">
+    <mu-appbar id="appbar" style="width: 100%" color="primary">
       <mu-button icon slot="left" @click="open = true">
         <mu-icon value="menu"></mu-icon>
       </mu-button>
@@ -87,6 +87,9 @@ export default {
   },
   created() {
     this.versionString = this.callAJ("getVersionString");
+    //设置状态栏颜色
+    //FIXME 这是直接从Muse UI官网看到的light主题primary颜色的十六进制数值，万一以后加了切换主题，就又对不上了
+    this.callAJ("setStatusBarColor", "#ff2196f3");
   },
 };
 </script>

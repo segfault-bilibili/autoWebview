@@ -1,11 +1,15 @@
 <template>
   <mu-flex direction="column">
+    <mu-alert color="warning" @delete="isAJObsolete = false" delete v-if="isAJObsolete" transition="mu-scale-transition">
+      <mu-icon left value="warning"></mu-icon>
+      <div slot="default" class="text-wrapper">{{ AJObsoleteWarningMsg }}</div>
+    </mu-alert>
     <mu-list textline="two-line">
       <mu-list-item button :ripple="true" @click="toggleAutoService">
         <mu-list-item-content>
           <mu-list-item-title v-if="isAutoServiceEnabled">无障碍服务已开启</mu-list-item-title>
           <mu-list-item-title v-else><b>请先开启无障碍服务</b></mu-list-item-title>
-          <mu-list-item-subtitle>用于抓取控件信息和模拟点击操作</mu-list-item-subtitle>
+          <mu-list-item-sub-title>用于抓取控件信息和模拟点击操作</mu-list-item-sub-title>
         </mu-list-item-content>
         <mu-list-item-action>
           <mu-icon value="done" v-if="isAutoServiceEnabled"></mu-icon>
@@ -16,7 +20,7 @@
         <mu-list-item-content>
           <mu-list-item-title v-if="isForegroundServiceEnabled">前台服务已开启</mu-list-item-title>
           <mu-list-item-title v-else>前台服务未开启</mu-list-item-title>
-          <mu-list-item-subtitle>尽量防止脚本进程被系统杀死</mu-list-item-subtitle>
+          <mu-list-item-sub-title>尽量防止脚本进程被系统杀死</mu-list-item-sub-title>
         </mu-list-item-content>
         <mu-list-item-action>
           <mu-icon value="done" v-if="isForegroundServiceEnabled"></mu-icon>
@@ -27,7 +31,7 @@
         <mu-list-item-content>
           <mu-list-item-title v-if="isStopOnVolUpEnabled">紧急停止键已开启</mu-list-item-title>
           <mu-list-item-title v-else>紧急停止键未开启</mu-list-item-title>
-          <mu-list-item-subtitle>按音量上键停止所有脚本</mu-list-item-subtitle>
+          <mu-list-item-sub-title>按音量上键停止所有脚本</mu-list-item-sub-title>
         </mu-list-item-content>
         <mu-list-item-action>
           <mu-icon value="done" v-if="isStopOnVolUpEnabled"></mu-icon>
@@ -177,6 +181,8 @@ import scriptsPlaceHolder from "../Scripts/placeholder.js";
 export default {
   data() {
     return {
+      isAJObsolete: false,
+      AJObsoleteWarningMsg: "",
       scripts: scriptsPlaceHolder,
       isAutoServiceEnabled: false,
       isForegroundServiceEnabled: false,
@@ -269,6 +275,10 @@ export default {
     for (let name of ["isAutoServiceEnabled", "isForegroundServiceEnabled", "isStopOnVolUpEnabled"])
       if (this.callAJ(name))
         this[name] = true;
+    //检测AutoJS引擎版本
+    let AJVersionInfo = this.callAJ("detectAutoJSVersion");
+    this.isAJObsolete = AJVersionInfo.isAJObsolete;
+    this.AJObsoleteWarningMsg = AJVersionInfo.AJObsoleteWarningMsg;
     /* TODO 为保持兼容，不应使用webview里的localstorage，还是应该继续从AutoJS的storages里读取参数 */
     //config
     let one = {};
