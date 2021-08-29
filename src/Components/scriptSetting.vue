@@ -1,11 +1,36 @@
 <template>
   <mu-flex direction="column">
-    <mu-list>
+    <mu-list textline="two-line">
       <mu-list-item button :ripple="true" @click="toggleAutoService">
-        <mu-list-item-title v-if="isAutoServiceEnabled">无障碍服务已开启</mu-list-item-title>
-        <mu-list-item-title v-else><b>请先开启无障碍服务</b></mu-list-item-title>
+        <mu-list-item-content>
+          <mu-list-item-title v-if="isAutoServiceEnabled">无障碍服务已开启</mu-list-item-title>
+          <mu-list-item-title v-else><b>请先开启无障碍服务</b></mu-list-item-title>
+          <mu-list-item-subtitle>用于抓取控件信息和模拟点击操作</mu-list-item-subtitle>
+        </mu-list-item-content>
         <mu-list-item-action>
           <mu-icon value="done" v-if="isAutoServiceEnabled"></mu-icon>
+          <mu-icon value="navigate_next" v-else></mu-icon>
+        </mu-list-item-action>
+      </mu-list-item>
+      <mu-list-item button :ripple="true" @click="toggleForegroundService">
+        <mu-list-item-content>
+          <mu-list-item-title v-if="isForegroundServiceEnabled">前台服务已开启</mu-list-item-title>
+          <mu-list-item-title v-else>前台服务未开启</mu-list-item-title>
+          <mu-list-item-subtitle>尽量防止脚本进程被系统杀死</mu-list-item-subtitle>
+        </mu-list-item-content>
+        <mu-list-item-action>
+          <mu-icon value="done" v-if="isForegroundServiceEnabled"></mu-icon>
+          <mu-icon value="navigate_next" v-else></mu-icon>
+        </mu-list-item-action>
+      </mu-list-item>
+      <mu-list-item button :ripple="true" @click="toggleStopOnVolUp">
+        <mu-list-item-content>
+          <mu-list-item-title v-if="isStopOnVolUpEnabled">紧急停止键已开启</mu-list-item-title>
+          <mu-list-item-title v-else>紧急停止键未开启</mu-list-item-title>
+          <mu-list-item-subtitle>按音量上键停止所有脚本</mu-list-item-subtitle>
+        </mu-list-item-content>
+        <mu-list-item-action>
+          <mu-icon value="done" v-if="isStopOnVolUpEnabled"></mu-icon>
           <mu-icon value="navigate_next" v-else></mu-icon>
         </mu-list-item-action>
       </mu-list-item>
@@ -154,6 +179,8 @@ export default {
     return {
       scripts: scriptsPlaceHolder,
       isAutoServiceEnabled: false,
+      isForegroundServiceEnabled: false,
+      isStopOnVolUpEnabled: false,
       config: { selectOptions: 0 },
     };
   },
@@ -182,6 +209,16 @@ export default {
       let alreadyEnabled = this.isAutoServiceEnabled ? true : false;
       let result = this.callAJ("toggleAutoService", !alreadyEnabled);
       this.isAutoServiceEnabled = result;
+    },
+    toggleForegroundService() {
+      let alreadyEnabled = this.isForegroundServiceEnabled ? true : false;
+      let result = this.callAJ("toggleForegroundService", !alreadyEnabled);
+      this.isForegroundServiceEnabled = result;
+    },
+    toggleStopOnVolUp() {
+      let alreadyEnabled = this.isStopOnVolUpEnabled ? true : false;
+      let result = this.callAJ("toggleStopOnVolUp", !alreadyEnabled);
+      this.isStopOnVolUpEnabled = result;
     },
     getScripts() {
       let result = this.callAJ("getScripts");
@@ -228,10 +265,10 @@ export default {
       }
       vueInstance[key] = value;
     }
-    //无障碍服务监控
-    if (this.callAJ("isAutoServiceEnabled")) {
-      this.isAutoServiceEnabled = true;
-    }
+    //脚本启动时检查无障碍服务/前台服务/按音量上键停止所有脚本是否开启
+    for (let name of ["isAutoServiceEnabled", "isForegroundServiceEnabled", "isStopOnVolUpEnabled"])
+      if (this.callAJ(name))
+        this[name] = true;
     /* TODO 为保持兼容，不应使用webview里的localstorage，还是应该继续从AutoJS的storages里读取参数 */
     //config
     let one = {};
