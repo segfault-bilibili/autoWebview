@@ -1,4 +1,6 @@
 module.exports = {
+  //use relative path
+  publicPath: './',
   devServer: {
     //Hot reloading may not work on other device,
     //because it may send requests to LAN IP address,
