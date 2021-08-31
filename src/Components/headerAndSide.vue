@@ -10,7 +10,7 @@
     <mu-drawer :open.sync="open" :docked="false">
       <mu-list>
         <div class="ava">
-          <mu-avatar :size="56">
+          <mu-avatar @click="clickDevMode()" :size="56">
             <img src="../img/1.png" />
           </mu-avatar>
           <div style="margin-top: 5px; font-weight: 600">
@@ -47,6 +47,7 @@ export default {
     return {
       open: false,
       versionString: "",
+      devModeClicks: 0,
     };
   },
   methods: {
@@ -83,6 +84,9 @@ export default {
     },
     upgrade() {
       this.callAJ("upgrade");
+    },
+    clickDevMode() {
+      this.$emit("clickDevMode");
     },
   },
   created() {

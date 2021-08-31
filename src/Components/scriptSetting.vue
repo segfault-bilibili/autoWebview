@@ -4,6 +4,10 @@
       <mu-icon left value="warning"></mu-icon>
       <div slot="default" class="text-wrapper">{{ AJObsoleteWarningMsg }}</div>
     </mu-alert>
+    <mu-alert color="warning" @delete="toggleDevMode" delete v-if="isDevMode" transition="mu-scale-transition">
+      <mu-icon left value="warning"></mu-icon>
+      <div slot="default" class="text-wrapper">{{ devModeMsg }}</div>
+    </mu-alert>
     <mu-list textline="two-line">
       <mu-list-item button :ripple="true" @click="toggleAutoService">
         <mu-list-item-content>
@@ -190,6 +194,10 @@ export default {
       config: { selectOptions: 0 },
     };
   },
+  props: [
+    'isDevMode',
+    'devModeMsg',
+  ],
   methods: {
     callAJ(functionName) {
       //使用JSON传递参数，无法传递函数
@@ -211,20 +219,29 @@ export default {
       }
       return res;
     },
+    openDefaultSnackbar(msg) {
+      this.$emit('openDefaultSnackbar', msg);
+    },
     toggleAutoService() {
       let alreadyEnabled = this.isAutoServiceEnabled ? true : false;
       let result = this.callAJ("toggleAutoService", !alreadyEnabled);
       this.isAutoServiceEnabled = result;
+      //this.openDefaultSnackbar(result?"已启用":"已停用");//需要系统设置里用户手动完成开启操作
     },
     toggleForegroundService() {
       let alreadyEnabled = this.isForegroundServiceEnabled ? true : false;
       let result = this.callAJ("toggleForegroundService", !alreadyEnabled);
       this.isForegroundServiceEnabled = result;
+      this.openDefaultSnackbar(result?"已启用":"已停用");
     },
     toggleStopOnVolUp() {
       let alreadyEnabled = this.isStopOnVolUpEnabled ? true : false;
       let result = this.callAJ("toggleStopOnVolUp", !alreadyEnabled);
       this.isStopOnVolUpEnabled = result;
+      this.openDefaultSnackbar(result?"已启用":"已停用");
+    },
+    toggleDevMode() {
+      this.$emit('toggleDevMode');
     },
     getScripts() {
       let result = this.callAJ("getScripts");
