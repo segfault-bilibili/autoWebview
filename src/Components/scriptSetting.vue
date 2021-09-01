@@ -4,7 +4,7 @@
       <mu-icon left value="warning"></mu-icon>
       <div slot="default" class="text-wrapper">{{ AJObsoleteWarningMsg }}</div>
     </mu-alert>
-    <mu-alert color="warning" @delete="toggleDevMode" delete v-if="isDevMode" transition="mu-scale-transition">
+    <mu-alert color="warning" @delete="devModeOff" delete v-if="isDevMode" transition="mu-scale-transition">
       <mu-icon left value="warning"></mu-icon>
       <div slot="default" class="text-wrapper">{{ devModeMsg }}</div>
     </mu-alert>
@@ -240,8 +240,11 @@ export default {
       this.isStopOnVolUpEnabled = result;
       this.openDefaultSnackbar(result?"已启用":"已停用");
     },
-    toggleDevMode() {
-      this.$emit('toggleDevMode');
+    toggleDevMode(enable) {
+      this.$emit('toggleDevMode', enable);
+    },
+    devModeOff() {
+      this.toggleDevMode(false);
     },
     getScripts() {
       let result = this.callAJ("getScripts");
