@@ -125,14 +125,14 @@ export default {
           this.devModeClicks = 0;
           if (this.isDevMode) {
             //退出开发模式
-            this.toggleDevMode();
+            this.toggleDevMode(false);
           } else {
             this.openDefaultConsentDialog(
               "进入开发模式",
                "如果你不懂下面这是啥意思，请【不要】点击确定，以防万一敏感权限被偷偷获取。\n要切换到开发模式么？",
               "确定",
               "取消",
-              () => {this.toggleDevMode();},
+              () => {this.toggleDevMode(true);},
               null
             );
           }
