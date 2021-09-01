@@ -1,4 +1,5 @@
 module.exports = {
+  outputDir: '../autoWebviewBuild/dist',
   //use relative path
   publicPath: './',
   devServer: {
