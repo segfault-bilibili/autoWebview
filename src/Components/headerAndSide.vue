@@ -24,7 +24,7 @@
         <mu-list-item button @click="openURL('http://rika.ren/~kuro/workspace/playground/')">
           <mu-list-item-title>模拟抽卡</mu-list-item-title>
         </mu-list-item>
-        <mu-list-item button @click="upgrade">
+        <mu-list-item button @click="checkForUpdates">
           <mu-list-item-title>检查更新</mu-list-item-title>
         </mu-list-item>
         <mu-list-item button @click="reportBug">
@@ -42,59 +42,44 @@
 </template>
 
 <script>
+import callAJ from '../utils/callAJ.js';
 export default {
   data() {
     return {
       open: false,
-      versionString: "",
       devModeClicks: 0,
     };
   },
+  props: [
+    'versionString',
+  ],
   methods: {
-    openURL(url) {
+    async callAJAsync() {
+      return await callAJ.callAJAsync.apply(this, arguments);
+    },
+    async openURL(url) {
       if (typeof url == "string") {
-        this.callAJ("openURL", url);
+        await this.callAJAsync("openURL", url);
       }
     },
-    callAJ(functionName) {
-      //使用JSON传递参数，无法传递函数
-      let paramString = "";
-      if (arguments.length > 1) {
-        let arrParam = [];
-        for (let i=1; i<arguments.length; i++) {
-          arrParam.push(arguments[i]);
-          paramString = JSON.stringify(arrParam);
-        }
-      }
-      let res = undefined;
-      try {
-        let resString = prompt(functionName, paramString);
-        res = JSON.parse(resString);
-      } catch (error) {
-        console.log(error);
-        res = undefined;
-      }
-      return res;
+    async reportBug() {
+      await this.callAJAsync("reportBug");
     },
-    reportBug() {
-      this.callAJ("reportBug");
+    async openLogConsole(){
+      await this.callAJAsync("openLogConsole");
     },
-    openLogConsole(){
-      this.callAJ("openLogConsole");
-    },
-    upgrade() {
-      this.callAJ("upgrade");
+    checkForUpdates() {
+      this.$emit("checkForUpdates");
     },
     clickDevMode() {
       this.$emit("clickDevMode");
     },
   },
-  created() {
-    this.versionString = this.callAJ("getVersionString");
+  created() {(async () => {
     //设置状态栏颜色
     //FIXME 这是直接从Muse UI官网看到的light主题primary颜色的十六进制数值，万一以后加了切换主题，就又对不上了
-    this.callAJ("setStatusBarColor", "#ff2196f3");
-  },
+    await this.callAJAsync("setStatusBarColor", "#ff2196f3");
+  })();},
 };
 </script>
 <style>

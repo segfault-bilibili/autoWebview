@@ -181,6 +181,7 @@
 </template>
 
 <script>
+import callAJ from '../utils/callAJ.js';
 import scriptsPlaceHolder from "../Scripts/placeholder.js";
 export default {
   data() {
@@ -199,46 +200,29 @@ export default {
     'devModeMsg',
   ],
   methods: {
-    callAJ(functionName) {
-      //使用JSON传递参数，无法传递函数
-      let paramString = "";
-      if (arguments.length > 1) {
-        let arrParam = [];
-        for (let i=1; i<arguments.length; i++) {
-          arrParam.push(arguments[i]);
-          paramString = JSON.stringify(arrParam);
-        }
-      }
-      let res = undefined;
-      try {
-        let resString = prompt(functionName, paramString);
-        res = JSON.parse(resString);
-      } catch (error) {
-        console.log(error);
-        res = undefined;
-      }
-      return res;
+    async callAJAsync() {
+      return await callAJ.callAJAsync.apply(this, arguments);
     },
-    openDefaultSnackbar(msg) {
-      this.$emit('openDefaultSnackbar', msg);
+    snackBarMsg(msg) {
+      this.$emit('snackBarMsg', msg);
     },
-    toggleAutoService() {
+    async toggleAutoService() {
       let alreadyEnabled = this.isAutoServiceEnabled ? true : false;
-      let result = this.callAJ("toggleAutoService", !alreadyEnabled);
+      let result = await this.callAJAsync("toggleAutoService", !alreadyEnabled);
       this.isAutoServiceEnabled = result;
-      //this.openDefaultSnackbar(result?"已启用":"已停用");//需要系统设置里用户手动完成开启操作
+      //this.snackBarMsg(result?"已启用":"已停用");//需要系统设置里用户手动完成开启操作
     },
-    toggleForegroundService() {
+    async toggleForegroundService() {
       let alreadyEnabled = this.isForegroundServiceEnabled ? true : false;
-      let result = this.callAJ("toggleForegroundService", !alreadyEnabled);
+      let result = await this.callAJAsync("toggleForegroundService", !alreadyEnabled);
       this.isForegroundServiceEnabled = result;
-      this.openDefaultSnackbar(result?"已启用":"已停用");
+      this.snackBarMsg(result?"已启用":"已停用");
     },
-    toggleStopOnVolUp() {
+    async toggleStopOnVolUp() {
       let alreadyEnabled = this.isStopOnVolUpEnabled ? true : false;
-      let result = this.callAJ("toggleStopOnVolUp", !alreadyEnabled);
+      let result = await this.callAJAsync("toggleStopOnVolUp", !alreadyEnabled);
       this.isStopOnVolUpEnabled = result;
-      this.openDefaultSnackbar(result?"已启用":"已停用");
+      this.snackBarMsg(result?"已启用":"已停用");
     },
     toggleDevMode(enable) {
       this.$emit('toggleDevMode', enable);
@@ -246,8 +230,8 @@ export default {
     devModeOff() {
       this.toggleDevMode(false);
     },
-    getScripts() {
-      let result = this.callAJ("getScripts");
+    async getScripts() {
+      let result = await this.callAJAsync("getScripts");
       if (result == null || result.length == 0) result = scriptsPlaceHolder;
       result.forEach(element => {
         if (element.config == null) element.config = scriptsPlaceHolder[0].config;
@@ -268,11 +252,11 @@ export default {
       }
       // 改变设置
       let data = { config: this.config };
-      this.callAJ("change_config", data);
+      await this.callAJAsync("change_config", data);
       */
     },
   },
-  created() {
+  created() {(async () => {
     //可在F12或AutoJS端更新UI状态
     let vueInstance = this;
     window.updateSettingsUI = function (key, value) {
@@ -291,12 +275,24 @@ export default {
       }
       vueInstance[key] = value;
     }
+    window.snackBarMsg = function (msg) {
+      switch (typeof msg) {
+        case "string":
+        case "number":
+        case "boolean":
+          vueInstance.snackBarMsg(""+msg);
+          break;
+        default:
+          console.error("updateSettingsUI: unacceptable value type");
+          return;
+      }
+    }
     //脚本启动时检查无障碍服务/前台服务/按音量上键停止所有脚本是否开启
     for (let name of ["isAutoServiceEnabled", "isForegroundServiceEnabled", "isStopOnVolUpEnabled"])
-      if (this.callAJ(name))
+      if (await this.callAJAsync(name))
         this[name] = true;
     //检测AutoJS引擎版本
-    let AJVersionInfo = this.callAJ("detectAutoJSVersion");
+    let AJVersionInfo = await this.callAJAsync("detectAutoJSVersion");
     this.isAJObsolete = AJVersionInfo.isAJObsolete;
     this.AJObsoleteWarningMsg = AJVersionInfo.AJObsoleteWarningMsg;
     /* TODO 为保持兼容，不应使用webview里的localstorage，还是应该继续从AutoJS的storages里读取参数 */
@@ -331,8 +327,8 @@ export default {
     one["selectOptions"] = this.config.selectOptions;
     this.config = one;
     //给默认执行脚本下拉选单实际填入数据
-    this.scripts = this.getScripts();
-  },
+    this.scripts = await this.getScripts();
+  })();},
 };
 </script>
 <style>
