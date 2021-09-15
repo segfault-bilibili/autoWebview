@@ -167,7 +167,7 @@ export default {
         reader.readAsDataURL(blob);
       });
     },
-    async downloadFileAsync(fileInfo) {
+    async downloadFileAsync(fileInfo, resultType) {
       let urlBase =
         this.upgradeUrlBase[this.isDevMode ? "debug" : "release"] + (
           this.isDevMode
@@ -194,8 +194,18 @@ export default {
         console.error("Caught error, fetching ["+request.url+"] failed. message=["+e.message+"]", e);
         throw e;
       }
-      if (!response.ok) throw new Error("response.ok is not true", response);;
-      return response;
+      if (!response.ok) throw new Error("response.ok is not true", response);
+      switch (resultType) {
+        case "text":
+          return await this.blobToTextAsync(await response.blob());
+        case "dataUri":
+        case "dataURI":
+          return await this.blobToDataURIAsync(await response.blob());
+        case "blob":
+          return await response.blob();
+        default:
+          return response;
+      }
     },
     generateUpdateDataString(updateData) {
       //TLV encoding
@@ -222,14 +232,19 @@ export default {
       bundleString = ",B"+bundleString.length+"_"+bundleString;
       return bundleString;
     },
-    async sendUpdateDataFragment(dataFrag) {
-      let updateDataStringFragBlob = new Blob([dataFrag], {type: 'application/json'});
+    async sendUpdateDataFragment(partInfo, dataFrag, delayms) {
+      //will return immediately when data URI is available - NOT when download is started
+      if (delayms == null) delayms = 0;
+      let partInfoStr = ""+partInfo.cur+","+partInfo.total+";"
+      let updateDataStringFragBlob = new Blob([partInfoStr+dataFrag], {type: 'application/json'});
       let updateDataStringFragDataUri = await this.blobToDataURIAsync(updateDataStringFragBlob);
-      let a = document.createElement('a');
-      a.setAttribute('download', "updateData.json");
-      a.setAttribute('href', updateDataStringFragDataUri);
-      a.click();
-      a.remove();
+      setTimeout(() => {
+        let a = document.createElement('a');
+        a.setAttribute('download', "updateData["+partInfo.cur+"of"+partInfo.total+"].json");
+        a.setAttribute('href', updateDataStringFragDataUri);
+        a.click();
+        a.remove();
+      }, delayms);
     },
     async upgrade() {
       if (this.isUpgradeInProgress) {
@@ -245,9 +260,7 @@ export default {
       this.snackBarMsg("下载更新...");
       let updateListLayeredJson;
       try {
-        let resp = await this.downloadFileAsync({src: "update/updateList.json"});
-        let blob = await resp.blob();
-        updateListLayeredJson = await this.blobToTextAsync(blob);
+        updateListLayeredJson = await this.downloadFileAsync({src: "update/updateList.json"}, "text");
       } catch (e) {
         this.snackBarMsg("下载更新列表时出错");
         this.isUpgradeInProgress = false;
@@ -274,9 +287,25 @@ export default {
       walkThrough(updateListLayered);
       //异步下载每一个文件
       try {
-        await Promise.all(updateList.map((fileInfo) => (async (fileInfo) => fileInfo.data = await this.downloadFileAsync(fileInfo))(fileInfo)));
-        await Promise.all(updateList.map((fileInfo) => (async (fileInfo) => fileInfo.data = await fileInfo.data.blob())(fileInfo)));
-        await Promise.all(updateList.map((fileInfo) => (async (fileInfo) => fileInfo.data = await this.blobToDataURIAsync(fileInfo.data))(fileInfo)));
+        for (let attempt=1,attemptMax=5,delaysec=1; attempt<=attemptMax; attempt++,delaysec*=2) {
+          try {
+            await Promise.all(updateList.map((fileInfo) => (async (fileInfo) => {
+              if (fileInfo.data == null) {
+                fileInfo.data = await this.downloadFileAsync(fileInfo, "dataURI");
+              }
+              return fileInfo.data;
+            })(fileInfo)));
+          } catch (e) {
+            if (attempt < attemptMax) {
+              this.snackBarErr("下载文件时出错，"+delaysec+"秒后重试["+attempt+"/"+(attemptMax-1)+"]...");
+              console.error(e);
+              await new Promise(r => setTimeout(r, delaysec*1000));
+            } else {
+              throw e;
+            }
+          }
+        }
+        this.snackBarLog("文件下载完成，尝试写入...");
         const PART_SIZE = 320 * 1024;
         let updateDataString = this.generateUpdateDataString(updateList);
         let remainder = updateDataString.length % PART_SIZE;
@@ -287,8 +316,9 @@ export default {
           let curPartSize = remainder > 0 && i == totalParts ? remainder : PART_SIZE;
           let endOffset = beginOffset + curPartSize;
           let updateDataStringFrag = updateDataString.substring(beginOffset, endOffset);
-          let partInfo = ""+i+","+totalParts+";"
-          await this.sendUpdateDataFragment(partInfo+updateDataStringFrag);
+          let partInfo = {cur: i, total: totalParts};
+          let delayms = 1000*parseInt(i/10); //在Webview中貌似没影响,只是Chrome浏览器貌似有限制
+          await this.sendUpdateDataFragment(partInfo, updateDataStringFrag, delayms);
         }
       } catch (e) {
         this.snackBarErr("更新时遇到问题");
@@ -343,9 +373,7 @@ export default {
       this.snackBarLog("检查更新...");
       let projectJson;
       try {
-        let resp = await this.downloadFileAsync({src: "project.json"});
-        let blob = await resp.blob();
-        projectJson = await this.blobToTextAsync(blob);
+        projectJson = await this.downloadFileAsync({src: "project.json"}, "text");
       } catch (e) {
         this.snackBarErr("检查更新时出错");
         console.error(e);
