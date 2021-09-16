@@ -24,7 +24,7 @@
         <mu-list-item button @click="openURL('http://rika.ren/~kuro/workspace/playground/')">
           <mu-list-item-title>模拟抽卡</mu-list-item-title>
         </mu-list-item>
-        <mu-list-item button @click="checkForUpdates">
+        <mu-list-item button @click="upgrade">
           <mu-list-item-title>检查更新</mu-list-item-title>
         </mu-list-item>
         <mu-list-item button @click="reportBug">
@@ -68,8 +68,8 @@ export default {
     async openLogConsole(){
       await this.callAJAsync("openLogConsole");
     },
-    checkForUpdates() {
-      this.$emit("checkForUpdates");
+    upgrade() {
+      this.$emit("upgrade");
     },
     clickDevMode() {
       this.$emit("clickDevMode");

@@ -4,7 +4,7 @@
       <headerSide
         :versionString="versionString"
         @clickDevMode="clickDevMode"
-        @checkForUpdates="checkForUpdates"
+        @upgrade="upgrade"
       ></headerSide>
       <div style="height: 100%; width: 100%">
         <mu-dialog :title="default_consent_dialog.title" :esc-press-close="false" :overlay-close="false" :open.sync="default_consent_dialog.open">
@@ -72,14 +72,6 @@ export default {
       },
     };
   },
-  watch: {
-    isUpgradeInProgress: function (oldIsUpgradeInProgress, newIsUpgradeInProgress) {
-      //避免下载更新出错时webview切换页面
-      (async () => {
-        await this.callAJAsync("setIgnoreWebviewError", newIsUpgradeInProgress ? true : false);
-      })();
-    },
-  },
   methods: {
     async callAJAsync() {
       return await callAJ.callAJAsync.apply(this, arguments);
@@ -103,20 +95,31 @@ export default {
     closeDefaultConsentDialog() {
       this.default_consent_dialog.open = false;
     },
+    async openDefaultConsentDialogAsync(title, content, positiveText, negativeText) {
+      return await new Promise((resolve, reject) => {
+        this.default_consent_dialog.title = title == null ? "" : title;
+        this.default_consent_dialog.content = content == null ? "" : content;
+        this.default_consent_dialog.btn.positive.text = positiveText == null ? "确定" : positiveText;
+        this.default_consent_dialog.btn.negative.text = negativeText == null ? "取消" : negativeText;
+        const retVals = {positive: true, negative: false};
+        for (let name in retVals) {
+          ((name) => this.default_consent_dialog.btn[name].callback = () => {
+            resolve(retVals[name]);
+            this.closeDefaultConsentDialog();
+          })(name);
+        }
+        this.default_consent_dialog.open = true;
+      });
+    },
     openDefaultConsentDialog(title, content, positiveText, negativeText, positiveCallback, negativeCallback) {
-      this.default_consent_dialog.title = title == null ? "" : title;
-      this.default_consent_dialog.content = content == null ? "" : content;
-      this.default_consent_dialog.btn.positive.text = positiveText == null ? "确定" : positiveText;
-      this.default_consent_dialog.btn.negative.text = negativeText == null ? "取消" : negativeText;
-      this.default_consent_dialog.btn.positive.callback = () => {
-        if (positiveCallback != null) positiveCallback();
-        this.closeDefaultConsentDialog();
-      }
-      this.default_consent_dialog.btn.negative.callback = () => {
-        if (negativeCallback != null) negativeCallback();
-        this.closeDefaultConsentDialog();
-      }
-      this.default_consent_dialog.open = true;
+      (async () => {
+        let consent = await this.openDefaultConsentDialogAsync(title, content, positiveText, negativeText);
+        if (consent) {
+          if (positiveCallback != null) positiveCallback();
+        } else {
+          if (negativeCallback != null) negativeCallback();
+        }
+      })();
     },
     async toggleDevMode(enable) {
       if (enable == null) enable = !this.isDevMode;
@@ -137,14 +140,13 @@ export default {
             //退出开发模式
             await this.toggleDevMode(false);
           } else {
-            this.openDefaultConsentDialog(
+            let consent = await this.openDefaultConsentDialogAsync(
               "进入开发模式",
                "如果你不懂下面这是啥意思，请【不要】点击确定，以防万一敏感权限被偷偷获取。\n要切换到开发模式么？",
               "确定",
-              "取消",
-              async () => {await this.toggleDevMode(true);},
-              null
+              "取消"
             );
+            if (consent) await this.toggleDevMode(consent);
           }
         }
       }
@@ -246,15 +248,9 @@ export default {
         a.remove();
       }, delayms);
     },
-    async upgrade() {
-      if (this.isUpgradeInProgress) {
-        this.snackBarMsg("更新正在进行中，请耐心等待");
-        return;
-      }
-      this.isUpgradeInProgress = true;
+    async downloadAndApplyUpdate() {
       if (!this.isDevMode && this.newerVersionString === "") {
         this.snackBarErr("不知道要更新到哪个版本，放弃");
-        this.isUpgradeInProgress = false;
         return;
       }
       this.snackBarMsg("下载更新...");
@@ -263,7 +259,6 @@ export default {
         updateListLayeredJson = await this.downloadFileAsync({src: "update/updateList.json"}, "text");
       } catch (e) {
         this.snackBarMsg("下载更新列表时出错");
-        this.isUpgradeInProgress = false;
         return;
       }
       //gen.js生成的JSON是有层级的，需要转换一下
@@ -273,7 +268,6 @@ export default {
       } catch (e) {
         this.snackBarErr("解析updateList.json失败");
         console.error(e);
-        this.isUpgradeInProgress = false;
         return;
       }
       let updateList = [];
@@ -324,7 +318,6 @@ export default {
         this.snackBarErr("更新时遇到问题");
         console.error(e);
       }
-      this.isUpgradeInProgress = false;
     },
     compareVersionStringWithCurrent(aotherVersionString) {
       let currentVer;
@@ -364,11 +357,6 @@ export default {
       return {result: false, hasError: true, msg: "比对版本时出错"};
     },
     async checkForUpdates() {
-      if (this.isUpgradeInProgress) {
-        this.snackBarMsg("更新正在进行中，请耐心等待");
-        return;
-      }
-      this.isUpgradeInProgress = true;
       this.newerVersionString = "";
       this.snackBarLog("检查更新...");
       let projectJson;
@@ -377,7 +365,6 @@ export default {
       } catch (e) {
         this.snackBarErr("检查更新时出错");
         console.error(e);
-        this.isUpgradeInProgress = false;
         return;
       }
       let projectObj;
@@ -386,12 +373,10 @@ export default {
       } catch (e) {
         this.snackBarErr("解析project.json失败");
         console.error(e);
-        this.isUpgradeInProgress = false;
         return;
       }
       if (typeof projectObj.versionName !== "string") {
         this.snackBarErr("project.json里未找到版本号");
-        this.isUpgradeInProgress = false;
         return;
       }
       let comparingResult = this.compareVersionStringWithCurrent(projectObj.versionName);
@@ -404,18 +389,16 @@ export default {
       } else {
         if (comparingResult.hasError) {
           this.snackBarErr(comparingResult.msg);
-          this.isUpgradeInProgress = false;
           return;
         }
         if (!comparingResult.result) {
           this.snackBarLog(comparingResult.msg);
-          this.isUpgradeInProgress = false;
           return;
         } else {
           this.newerVersionString = comparingResult.newerVerStr;
         }
       }
-      this.openDefaultConsentDialog(
+      let consent = await this.openDefaultConsentDialogAsync(
         "有更新可用",
         "要升级到最新版 ["+(
           this.isDevMode
@@ -428,16 +411,28 @@ export default {
             : ""
         ),
         "确定",
-        "取消",
-        () => {
-          this.isUpgradeInProgress = false;//检查更新和下载更新共用一个变量
-          (async () => {await this.upgrade();})();
-        },
-        () => {
-          this.snackBarLog("取消更新");
-          this.isUpgradeInProgress = false;
-        }
+        "取消"
       );
+      if (!consent) {
+        this.snackBarLog("取消更新");
+      }
+      return consent;
+    },
+    async upgrade() {
+      if (this.isUpgradeInProgress) {
+        this.snackBarMsg("更新正在进行中，请耐心等待");
+        return;
+      }
+      this.isUpgradeInProgress = true;
+      try {
+        await this.callAJAsync("setIgnoreWebviewError", true);
+        if (await this.checkForUpdates()) {
+          await this.downloadAndApplyUpdate();
+        }
+      } finally {
+        this.isUpgradeInProgress = false;
+        await this.callAJAsync("setIgnoreWebviewError", false);
+      }
     },
   },
   created() {(async () => {
