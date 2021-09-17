@@ -7,8 +7,8 @@ export default {
       let arrParam = [];
       for (let i=1; i<arguments.length; i++) {
         arrParam.push(arguments[i]);
-        paramString = JSON.stringify(arrParam);
       }
+      paramString = JSON.stringify(arrParam);
     }
     try {
       let resString = prompt(functionName, paramString);
@@ -27,8 +27,8 @@ export default {
       let arrParam = [];
       for (let i=1; i<arguments.length; i++) {
         arrParam.push(arguments[i]);
-        paramString = JSON.stringify(arrParam);
       }
+      paramString = JSON.stringify(arrParam);
     }
     return await new Promise((resolve, reject) => {
       setTimeout(() => {
