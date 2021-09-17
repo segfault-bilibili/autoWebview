@@ -196,7 +196,13 @@ export default {
         console.error("Caught error, fetching ["+request.url+"] failed. message=["+e.message+"]", e);
         throw e;
       }
-      if (!response.ok) throw new Error("response.ok is not true", response);
+      if (!response.ok) {
+        let statusLine = "";
+        statusLine += response.status != null ? response.status : "response is not ok";
+        if (response.statusText != null) statusLine += " "+response.statusText;
+        console.error("Fetching ["+request.url+"] failed, response is not ok. "+statusLine, response);
+        throw new Error(statusLine);
+      }
       switch (resultType) {
         case "text":
           return await this.blobToTextAsync(await response.blob());
@@ -259,6 +265,7 @@ export default {
         updateListLayeredJson = await this.downloadFileAsync({src: "update/updateList.json"}, "text");
       } catch (e) {
         this.snackBarMsg("下载更新列表时出错");
+        console.log(e);
         return;
       }
       //gen.js生成的JSON是有层级的，需要转换一下
