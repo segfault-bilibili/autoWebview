@@ -2,6 +2,7 @@
   <div id="app">
     <mu-flex direction="column" style="height: 100%">
       <headerSide
+        :appNameString = "appNameString"
         :versionString="versionString"
         @clickDevMode="clickDevMode"
         @upgrade="upgrade"
@@ -38,6 +39,7 @@ export default {
   },
   data() {
     return {
+      appNameString: "",
       versionString: "",
       devModeClicks: 0,
       isDevMode: false,
@@ -443,8 +445,10 @@ export default {
     },
   },
   created() {(async () => {
-    //获取当前版本号
-    this.versionString = await this.callAJAsync("getVersionString");
+    //获取app自己的名字和当前版本号
+    let projectInfo = await this.callAJAsync("getProjectInfo");
+    this.appNameString = projectInfo.name;
+    this.versionString = projectInfo.versionName;
     //是否处于开发模式
     this.isDevMode = await this.callAJAsync("isDevMode");
     if (this.isDevMode) {

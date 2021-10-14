@@ -4,7 +4,7 @@
       <mu-button icon slot="left" @click="open = true">
         <mu-icon value="menu"></mu-icon>
       </mu-button>
-      全自动小彩羽v{{versionString}}
+      {{appNameString}} v{{versionString}}
     </mu-appbar>
 
     <mu-drawer :open.sync="open" :docked="false">
@@ -14,7 +14,7 @@
             <img src="../img/1.png" />
           </mu-avatar>
           <div style="margin-top: 5px; font-weight: 600">
-            全自动小彩羽v{{versionString}}
+            {{appNameString}} v{{versionString}}
           </div>
         </div>
         <mu-divider></mu-divider>
@@ -51,6 +51,7 @@ export default {
     };
   },
   props: [
+    'appNameString',
     'versionString',
   ],
   methods: {
