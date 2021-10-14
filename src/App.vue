@@ -72,6 +72,7 @@ export default {
         debug: "http://0.0.0.0",
         release: "http://0.0.0.0",
       },
+      githubLatestReleaseApiUrl: "https://api.github.com/repos/icegreentee/magireco_autoBattle/releases/latest",
     };
   },
   methods: {
@@ -368,27 +369,55 @@ export default {
     async checkForUpdates() {
       this.newerVersionString = "";
       this.snackBarLog("检查更新...");
+
+      let newerVersionName;
+      let apiRespJson;
       let projectJson;
-      try {
+
+      if (!this.isDevMode) try {
+        apiRespJson = await this.downloadFileAsync({src: this.githubLatestReleaseApiUrl}, "text");
+      } catch (e) {
+        console.error(e);
+        apiRespJson = undefined;
+        this.snackBarErr("无法从GitHub检查更新");
+      }
+      if (apiRespJson == null) try {
         projectJson = await this.downloadFileAsync({src: "project.json"}, "text");
+        this.snackBarLog("已从备用途径检查更新");
       } catch (e) {
+        console.error(e);
+        projectJson = undefined;
         this.snackBarErr("检查更新时出错");
-        console.error(e);
         return;
       }
-      let projectObj;
-      try {
-        projectObj = JSON.parse(projectJson);
-      } catch (e) {
-        this.snackBarErr("解析project.json失败");
-        console.error(e);
-        return;
+
+      if (apiRespJson != null) {
+        try {
+          let apiRespObj = JSON.parse(apiRespJson);
+          newerVersionName = apiRespObj.tag_name;
+          console.log("从GitHub获取到最新版本号: ["+newerVersionName+"]");
+        } catch (e) {
+          this.snackBarErr("解析GitHub API响应结果失败");
+          console.error(e);
+          return;
+        }
+      } else if (projectJson != null) {
+        try {
+          let projectObj = JSON.parse(projectJson);
+          newerVersionName = projectObj.versionName;
+          console.log("从备用途径获取到最新版本号: ["+newerVersionName+"]");
+        } catch (e) {
+          this.snackBarErr("解析project.json失败");
+          console.error(e);
+          return;
+        }
       }
-      if (typeof projectObj.versionName !== "string") {
+
+      if (typeof newerVersionName !== "string") {
         this.snackBarErr("project.json里未找到版本号");
         return;
       }
-      let comparingResult = this.compareVersionStringWithCurrent(projectObj.versionName);
+      let comparingResult = this.compareVersionStringWithCurrent(newerVersionName);
       let comparingResultStr = "";
       if (this.isDevMode) {
         this.snackBarLog("当前处于开发模式，版本号会被忽略");
@@ -411,7 +440,7 @@ export default {
         "有更新可用",
         "要升级到最新版 ["+(
           this.isDevMode
-            ? projectObj.versionName
+            ? newerVersionName
             : this.newerVersionString
         )+"] 吗？"+(
           this.isDevMode
