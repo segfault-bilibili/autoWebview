@@ -8,6 +8,10 @@
       <mu-icon left value="warning"></mu-icon>
       <div slot="default" class="text-wrapper">{{ devModeMsg }}</div>
     </mu-alert>
+    <mu-alert color="info" @delete="showUpdateReminder = false" delete v-if="availUpdateVerString && showUpdateReminder" transition="mu-scale-transition">
+      <mu-icon left value="info"></mu-icon>
+      <div slot="default" class="text-wrapper">可更新到v{{ availUpdateVerString }}</div>
+    </mu-alert>
     <mu-list textline="two-line">
       <mu-list-item button :ripple="true" @click="toggleAutoService">
         <mu-list-item-content>
@@ -188,6 +192,7 @@ export default {
     return {
       isAJObsolete: false,
       AJObsoleteWarningMsg: "",
+      showUpdateReminder: true,
       scripts: scriptsPlaceHolder,
       isAutoServiceEnabled: false,
       isForegroundServiceEnabled: false,
@@ -198,6 +203,7 @@ export default {
   props: [
     'isDevMode',
     'devModeMsg',
+    'availUpdateVerString',
   ],
   methods: {
     async callAJAsync() {

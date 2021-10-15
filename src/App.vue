@@ -16,6 +16,7 @@
         <scriptSetting
           :isDevMode="isDevMode"
           :devModeMsg="devModeMsg"
+          :availUpdateVerString="availUpdateVerString"
           @toggleDevMode="toggleDevMode"
           @snackBarMsg="snackBarMsg"
         ></scriptSetting>
@@ -67,7 +68,9 @@ export default {
         },
       },
       isUpgradeInProgress: false,
-      newerVersionString: "",
+      latestVersionString: "",
+      availUpdateVerString: "",//如果最新版不高于当前版本则设为空字符串
+      comparingResultStr: "",
       upgradeUrlBase: {
         debug: "http://0.0.0.0",
         release: "http://0.0.0.0",
@@ -177,9 +180,9 @@ export default {
         this.upgradeUrlBase[this.isDevMode ? "debug" : "release"] + (
           this.isDevMode
             ? ""
-            : this.newerVersionString === ""
+            : this.availUpdateVerString === ""
               ? "@latest"
-              : "@" + this.newerVersionString
+              : "@" + this.availUpdateVerString
         );
       let url =
         fileInfo.src.match(/^(http|https)\:\/\/.+/)
@@ -258,7 +261,7 @@ export default {
       }, delayms);
     },
     async downloadAndApplyUpdate() {
-      if (!this.isDevMode && this.newerVersionString === "") {
+      if (!this.isDevMode && this.availUpdateVerString === "") {
         this.snackBarErr("不知道要更新到哪个版本，放弃");
         return;
       }
@@ -367,10 +370,9 @@ export default {
       return {result: false, hasError: true, msg: "比对版本时出错"};
     },
     async checkForUpdates() {
-      this.newerVersionString = "";
+      this.availUpdateVerString = "";
       this.snackBarLog("检查更新...");
 
-      let newerVersionName;
       let apiRespJson;
       let projectJson;
 
@@ -388,64 +390,67 @@ export default {
         console.error(e);
         projectJson = undefined;
         this.snackBarErr("检查更新时出错");
-        return;
+        return false;
       }
 
       if (apiRespJson != null) {
         try {
           let apiRespObj = JSON.parse(apiRespJson);
-          newerVersionName = apiRespObj.tag_name;
-          console.log("从GitHub获取到最新版本号: ["+newerVersionName+"]");
+          this.latestVersionString = apiRespObj.tag_name;
+          console.log("从GitHub获取到最新版本号: ["+this.latestVersionString+"]");
         } catch (e) {
           this.snackBarErr("解析GitHub API响应结果失败");
           console.error(e);
-          return;
+          return false;
         }
       } else if (projectJson != null) {
         try {
           let projectObj = JSON.parse(projectJson);
-          newerVersionName = projectObj.versionName;
-          console.log("从备用途径获取到最新版本号: ["+newerVersionName+"]");
+          this.latestVersionString = projectObj.versionName;
+          console.log("从备用途径获取到最新版本号: ["+this.latestVersionString+"]");
         } catch (e) {
-          this.snackBarErr("解析project.json失败");
+          this.snackBarErr("解析JSON失败");
           console.error(e);
-          return;
+          return false;
         }
       }
 
-      if (typeof newerVersionName !== "string") {
-        this.snackBarErr("project.json里未找到版本号");
-        return;
+      if (typeof this.latestVersionString !== "string") {
+        this.snackBarErr("找不到版本号");
+        return false;
       }
-      let comparingResult = this.compareVersionStringWithCurrent(newerVersionName);
-      let comparingResultStr = "";
+      let comparingResult = this.compareVersionStringWithCurrent(this.latestVersionString);
+      this.comparingResultStr = "";
       if (this.isDevMode) {
         this.snackBarLog("当前处于开发模式，版本号会被忽略");
-        comparingResultStr = "\n版本比对结果:";
+        this.comparingResultStr = "\n版本比对结果:";
         for (let key of ["result", "newerVerStr", "hasError", "msg"])
-          comparingResultStr += " "+key+"=["+comparingResult[key]+"]";
+          this.comparingResultStr += " "+key+"=["+comparingResult[key]+"]";
       } else {
         if (comparingResult.hasError) {
           this.snackBarErr(comparingResult.msg);
-          return;
+          return false;
         }
         if (!comparingResult.result) {
           this.snackBarLog(comparingResult.msg);
-          return;
-        } else {
-          this.newerVersionString = comparingResult.newerVerStr;
+          return false;
         }
       }
+      this.availUpdateVerString = comparingResult.newerVerStr;
+      return true;
+    },
+    async checkAndAskForUpdates() {
+      if (!await this.checkForUpdates()) return;
       let consent = await this.openDefaultConsentDialogAsync(
         "有更新可用",
         "要升级到最新版 ["+(
           this.isDevMode
-            ? newerVersionName
-            : this.newerVersionString
+            ? this.latestVersionString
+            : this.availUpdateVerString
         )+"] 吗？"+(
           this.isDevMode
             ? "\n当前处于开发模式，版本号会被忽略。"
-              +comparingResultStr
+              +this.comparingResultStr
             : ""
         ),
         "确定",
@@ -464,7 +469,7 @@ export default {
       this.isUpgradeInProgress = true;
       try {
         await this.callAJAsync("setIgnoreWebviewError", true);
-        if (await this.checkForUpdates()) {
+        if (await this.checkAndAskForUpdates()) {
           await this.downloadAndApplyUpdate();
         }
       } finally {
@@ -492,6 +497,8 @@ export default {
     }
     //从AutoJS端获取更新网址
     this.upgradeUrlBase = await this.callAJAsync("getUpgradeUrlBase");
+    //检查更新(异步)
+    this.checkForUpdates();
   })();},
 };
 </script>
