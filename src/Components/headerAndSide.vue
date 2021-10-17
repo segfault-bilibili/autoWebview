@@ -21,7 +21,7 @@
         <mu-list-item button @click="openURL('https://magireco.moe/wiki/%E9%A6%96%E9%A1%B5')">
           <mu-list-item-title>魔纪wiki</mu-list-item-title>
         </mu-list-item>
-        <mu-list-item button @click="openURL('http://rika.ren/~kuro/workspace/playground/')">
+        <mu-list-item button @click="openURL('https://jp.rika.ren/playground/gachaEmulator/')">
           <mu-list-item-title>模拟抽卡</mu-list-item-title>
         </mu-list-item>
         <mu-list-item button @click="upgrade">
